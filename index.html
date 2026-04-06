@@ -51,11 +51,18 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 
 /* main */
 #main{flex:1;display:none;flex-direction:column;overflow:hidden}
-.toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.toolbar{display:flex;flex-direction:column;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.toolbar-row{display:flex;align-items:center;gap:8px}
 .tb-info{flex:1;font-size:.63rem;color:var(--muted)}
 .tb-info b{color:var(--accent2)}
 .btn-sm{background:var(--surf);border:1px solid var(--border);border-radius:9px;padding:7px 13px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.65rem;cursor:pointer;transition:background .15s;white-space:nowrap}
 .btn-sm:active{background:var(--border)}
+.search-wrap{position:relative;width:100%}
+.search-wrap .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.8rem;pointer-events:none;opacity:.4}
+#search{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:8px 12px 8px 30px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:.72rem;outline:none;transition:border-color .2s}
+#search:focus{border-color:var(--accent)}
+#search::placeholder{color:var(--muted)}
+#lbl-filtered{font-size:.6rem;color:var(--muted);white-space:nowrap}
 
 #list{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px;-webkit-overflow-scrolling:touch}
 #list::-webkit-scrollbar{width:2px}
@@ -119,8 +126,14 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 <!-- Main -->
 <div id="main">
   <div class="toolbar">
-    <div class="tb-info"><b id="lbl-count">–</b> archivos</div>
-    <button class="btn-sm" onclick="loadFiles()">↻ Refrescar</button>
+    <div class="search-wrap">
+      <span class="si">🔍</span>
+      <input id="search" type="search" placeholder="Buscar por nombre…" oninput="filterList()" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="toolbar-row">
+      <div class="tb-info"><b id="lbl-count">–</b> archivos<span id="lbl-filtered"></span></div>
+      <button class="btn-sm" onclick="loadFiles()">↻ Refrescar</button>
+    </div>
   </div>
   <div id="list"></div>
 </div>
@@ -131,6 +144,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:16p
 <script>
 const BASE   = "http://100.93.228.17:8765";
 const linked = new Set();
+let allFiles = [];
 
 window.addEventListener("DOMContentLoaded", loadFiles);
 
@@ -143,7 +157,10 @@ async function loadFiles() {
     document.getElementById("lbl-count").textContent = data.length;
     setDot("ok", "en línea");
     showMain();
-    renderList(data);
+    allFiles = data;
+  document.getElementById("search").value = "";
+  document.getElementById("lbl-filtered").textContent = "";
+  renderList(data);
   } catch(e) {
     setDot("err", "sin conexión");
     showOffline();
@@ -168,6 +185,14 @@ function showOffline() {
 function showMain() {
   document.getElementById("offline-banner").style.display = "none";
   document.getElementById("main").style.display = "flex";
+}
+
+function filterList() {
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const filtered = q ? allFiles.filter(f => f.title.toLowerCase().includes(q)) : allFiles;
+  const lbl = document.getElementById("lbl-filtered");
+  lbl.textContent = q ? ` · ${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}` : "";
+  renderList(filtered);
 }
 
 function renderList(data) {
